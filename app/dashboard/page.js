@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, Filter, Eye, X, User, Users, MapPin, Phone, Calendar, CreditCard, BookOpen, GraduationCap, Globe, Loader2 } from 'lucide-react';
+import { Search, Filter, Eye, X, User, Users, MapPin, Phone, Calendar, CreditCard, BookOpen, GraduationCap, Globe, Loader2, CheckCircle } from 'lucide-react';
 
 export default function DashboardPage() {
   const [students, setStudents] = useState([]);
@@ -11,9 +11,32 @@ export default function DashboardPage() {
   
   // Filtering
   const [teacherFilter, setTeacherFilter] = useState('All');
+  const [paymentFilter, setPaymentFilter] = useState('All');
   
   // Modal State
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedStudentAttendance, setSelectedStudentAttendance] = useState([]);
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
+
+  const openStudentDetails = async (student) => {
+    setSelectedStudent(student);
+    setLoadingAttendance(true);
+    try {
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('student_id', student.id)
+        .order('date', { ascending: false });
+        
+      if (error && error.code !== 'PGRST116') throw error;
+      setSelectedStudentAttendance(data || []);
+    } catch (err) {
+      console.error("Error fetching attendance:", err);
+      setSelectedStudentAttendance([]);
+    } finally {
+      setLoadingAttendance(false);
+    }
+  };
 
   useEffect(() => {
     fetchStudents();
@@ -38,9 +61,33 @@ export default function DashboardPage() {
   };
 
   const filteredStudents = students.filter(student => {
-    if (teacherFilter === 'All') return true;
-    return student.assigned_teacher === teacherFilter;
+    const passesTeacher = teacherFilter === 'All' || student.assigned_teacher === teacherFilter;
+    const passesPayment = paymentFilter === 'All' || 
+                          (paymentFilter === 'Pending' && (!student.payment_status || student.payment_status === 'Pending')) || 
+                          (paymentFilter === 'Confirmed' && student.payment_status === 'Confirmed');
+    return passesTeacher && passesPayment;
   });
+
+  const verifyPayment = async (studentId) => {
+    // Optimistic UI update
+    setStudents(prev => prev.map(s => s.id === studentId ? { ...s, payment_status: 'Confirmed' } : s));
+    
+    try {
+      const { error } = await supabase
+        .from('students')
+        .update({ payment_status: 'Confirmed' })
+        .eq('id', studentId);
+        
+      if (error) {
+        throw error;
+      }
+    } catch (err) {
+      console.error("Error updating payment status:", err);
+      // Revert on error
+      fetchStudents();
+      alert("Failed to verify payment. Please try again.");
+    }
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -55,7 +102,18 @@ export default function DashboardPage() {
           <p className="mt-2 text-sm text-gray-700">A list of all student applications including their name, course, and assigned teacher.</p>
         </div>
         
-        <div className="mt-4 sm:mt-0 flex items-center">
+        <div className="mt-4 sm:mt-0 flex items-center space-x-4">
+          <div className="relative w-full sm:w-auto">
+            <select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value)}
+              className="block w-full sm:w-40 pl-3 pr-8 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border bg-white"
+            >
+              <option value="All">All Payments</option>
+              <option value="Pending">Pending</option>
+              <option value="Confirmed">Confirmed</option>
+            </select>
+          </div>
           <div className="relative w-full sm:w-auto">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
               <Filter size={16} />
@@ -103,6 +161,9 @@ export default function DashboardPage() {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Assigned Teacher
                   </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Payment
+                  </th>
                   <th scope="col" className="relative px-6 py-3">
                     <span className="sr-only">Actions</span>
                   </th>
@@ -138,14 +199,32 @@ export default function DashboardPage() {
                           {student.assigned_teacher || 'Unassigned'}
                         </span>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          student.payment_status === 'Confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {student.payment_status || 'Pending'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => setSelectedStudent(student)}
-                          className="text-blue-600 hover:text-blue-900 flex items-center justify-end w-full"
-                        >
-                          <Eye size={16} className="mr-1" />
-                          View Details
-                        </button>
+                        <div className="flex flex-col items-end justify-center space-y-2">
+                          {(!student.payment_status || student.payment_status === 'Pending') && (
+                            <button
+                              onClick={() => verifyPayment(student.id)}
+                              className="text-green-700 hover:text-green-900 hover:bg-green-100 flex items-center bg-green-50 px-3 py-1.5 rounded-md border border-green-200 transition-colors shadow-sm"
+                            >
+                              <CheckCircle size={14} className="mr-1.5" />
+                              Verify Payment
+                            </button>
+                          )}
+                          <button
+                            onClick={() => openStudentDetails(student)}
+                            className="text-blue-600 hover:text-blue-900 flex items-center px-3 py-1.5"
+                          >
+                            <Eye size={16} className="mr-1.5" />
+                            View Details
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -261,10 +340,43 @@ export default function DashboardPage() {
                         <p className="font-bold text-blue-700 text-lg">{selectedStudent.course || 'N/A'}</p>
                       </div>
                       
-                      <div>
-                        <p className="text-xs text-gray-500">Assigned Teacher</p>
-                        <p className="font-bold">{selectedStudent.assigned_teacher || 'None'}</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-gray-500">Assigned Teacher</p>
+                          <p className="font-bold">{selectedStudent.assigned_teacher || 'None'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Payment Status</p>
+                          <span className={`px-2 py-1 mt-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            selectedStudent.payment_status === 'Confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {selectedStudent.payment_status || 'Pending'}
+                          </span>
+                        </div>
                       </div>
+                    </div>
+
+                    {/* Attendance History */}
+                    <div className="md:col-span-2 space-y-4 pt-4 border-t border-gray-100">
+                      <h4 className="font-semibold text-sm text-gray-900 border-b pb-2 uppercase tracking-wider">Attendance History</h4>
+                      {loadingAttendance ? (
+                        <div className="flex justify-center p-4">
+                           <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                        </div>
+                      ) : selectedStudentAttendance.length === 0 ? (
+                        <p className="text-sm text-gray-500 italic">No attendance records found.</p>
+                      ) : (
+                        <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
+                          {selectedStudentAttendance.map(record => (
+                            <div key={record.id} className="flex justify-between items-center text-sm p-3 bg-gray-50 rounded-lg border border-gray-100">
+                              <span className="font-medium text-gray-700">{new Date(record.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                              <span className={`px-2 py-1 text-xs font-bold rounded-full ${record.status === 'Present' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {record.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                   </div>
