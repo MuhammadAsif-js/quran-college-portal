@@ -1,9 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Student, AttendanceRecord, AttendanceMap } from '@/types';
-import { Calendar, UserCheck, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import {
+  Calendar,
+  UserCheck,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Users,
+  MonitorSmartphone,
+  PenLine,
+} from 'lucide-react';
 
 type AttendanceStatus = 'Present' | 'Absent';
 
@@ -27,6 +36,9 @@ export default function AttendancePage() {
   const [attendances, setAttendances]         = useState<AttendanceMap>({});
   const [loading, setLoading]                 = useState<boolean>(false);
   const [error, setError]                     = useState<string | null>(null);
+
+  // Track which studentIds already had a record when the page loaded (= kiosk check-in)
+  const kioskCheckedIn = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (selectedTeacher && date) {
@@ -58,9 +70,14 @@ export default function AttendancePage() {
 
       // Build map
       const attendanceMap: AttendanceMap = {};
+      const selfCheckedInIds = new Set<string>();
+
       (attendanceData as AttendanceRecord[]).forEach((record) => {
         attendanceMap[record.student_id] = record;
+        if (record.id) selfCheckedInIds.add(record.student_id); // existing record = kiosk check-in
       });
+
+      kioskCheckedIn.current = selfCheckedInIds;
 
       const sorted = ((studentsData as AttendanceStudent[]) ?? []).sort((a, b) =>
         a.name.localeCompare(b.name)
@@ -127,113 +144,242 @@ export default function AttendancePage() {
     }
   };
 
+  // ── Derived daily stats (zero extra Supabase calls) ──────────────────────
+  const totalStudents = students.length;
+  const presentCount  = students.filter((s) => attendances[s.id]?.status === 'Present').length;
+  const absentCount   = students.filter((s) => attendances[s.id]?.status === 'Absent').length;
+
+  const todayLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
   return (
     <div className="space-y-6 max-w-lg mx-auto sm:max-w-2xl">
-      {/* Controls */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Daily Attendance</h1>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Date picker */}
+      {/* ── Command Center Controls ───────────────────────────────────────── */}
+      <div
+        className="rounded-2xl overflow-hidden shadow-sm border"
+        style={{ borderColor: 'rgba(15,62,51,0.15)' }}
+      >
+        {/* Header strip */}
+        <div
+          className="px-6 py-4 flex items-center justify-between"
+          style={{ background: 'linear-gradient(135deg, #0F3E33, #1a5c4a)' }}
+        >
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Date</label>
-            <div className="relative rounded-xl shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <Calendar size={18} />
-              </div>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 text-gray-900 focus:outline-none"
-              />
-            </div>
+            <h1 className="text-xl font-extrabold text-white tracking-tight">
+              Attendance Command Center
+            </h1>
+            <p className="text-white/55 text-xs mt-0.5">{todayLabel}</p>
           </div>
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(212,175,55,0.2)' }}
+          >
+            <UserCheck size={20} style={{ color: '#D4AF37' }} />
+          </div>
+        </div>
 
-          {/* Teacher selector */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Select Teacher
-            </label>
-            <div className="relative rounded-xl shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <UserCheck size={18} />
+        {/* Controls body */}
+        <div className="bg-white px-6 py-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Date picker */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#0F3E33' }}>
+                Date
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                  <Calendar size={16} />
+                </div>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="block w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:outline-none transition-colors font-medium"
+                  onFocus={(e) => (e.currentTarget.style.borderColor = '#D4AF37')}
+                  onBlur={(e)  => (e.currentTarget.style.borderColor = '#e5e7eb')}
+                />
               </div>
-              <select
-                value={selectedTeacher}
-                onChange={(e) => setSelectedTeacher(e.target.value)}
-                className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 text-gray-900 bg-white focus:outline-none"
-              >
-                <option value="Teacher 1">Teacher 1</option>
-                <option value="Teacher 2">Teacher 2</option>
-                <option value="Teacher 3">Teacher 3</option>
-              </select>
+            </div>
+
+            {/* Teacher selector */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#0F3E33' }}>
+                Teacher
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                  <UserCheck size={16} />
+                </div>
+                <select
+                  value={selectedTeacher}
+                  onChange={(e) => setSelectedTeacher(e.target.value)}
+                  className="block w-full pl-10 pr-10 py-3 border-2 border-gray-200 rounded-xl text-gray-900 bg-white focus:outline-none transition-colors font-medium"
+                  onFocus={(e) => (e.currentTarget.style.borderColor = '#D4AF37')}
+                  onBlur={(e)  => (e.currentTarget.style.borderColor = '#e5e7eb')}
+                >
+                  <option value="Teacher 1">Teacher 1</option>
+                  <option value="Teacher 2">Teacher 2</option>
+                  <option value="Teacher 3">Teacher 3</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tip */}
-      <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl text-sm flex items-start shadow-sm">
-        <span className="text-xl mr-3 leading-none">💡</span>
+      {/* ── Daily Stats Cards ─────────────────────────────────────────────── */}
+      {!loading && students.length > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          {/* Total */}
+          <div
+            className="bg-white rounded-2xl px-4 py-4 border shadow-sm flex flex-col items-center text-center"
+            style={{ borderColor: 'rgba(15,62,51,0.12)' }}
+          >
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center mb-2"
+              style={{ background: 'rgba(15,62,51,0.08)' }}
+            >
+              <Users size={18} style={{ color: '#0F3E33' }} />
+            </div>
+            <p className="text-2xl font-extrabold" style={{ color: '#0F3E33' }}>
+              {totalStudents}
+            </p>
+            <p className="text-xs font-semibold text-gray-400 mt-0.5 uppercase tracking-wide">
+              Total
+            </p>
+          </div>
+
+          {/* Present */}
+          <div className="bg-white rounded-2xl px-4 py-4 border border-emerald-100 shadow-sm flex flex-col items-center text-center">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center mb-2 bg-emerald-50">
+              <CheckCircle size={18} className="text-emerald-600" />
+            </div>
+            <p className="text-2xl font-extrabold text-emerald-600">{presentCount}</p>
+            <p className="text-xs font-semibold text-gray-400 mt-0.5 uppercase tracking-wide">
+              Present
+            </p>
+          </div>
+
+          {/* Absent */}
+          <div className="bg-white rounded-2xl px-4 py-4 border border-red-100 shadow-sm flex flex-col items-center text-center">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center mb-2 bg-red-50">
+              <XCircle size={18} className="text-red-500" />
+            </div>
+            <p className="text-2xl font-extrabold text-red-500">{absentCount}</p>
+            <p className="text-xs font-semibold text-gray-400 mt-0.5 uppercase tracking-wide">
+              Absent
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tip banner ───────────────────────────────────────────────────── */}
+      <div
+        className="flex items-start gap-3 p-4 rounded-xl border text-sm"
+        style={{
+          background: 'rgba(212,175,55,0.07)',
+          borderColor: 'rgba(212,175,55,0.3)',
+          color: '#7a5c00',
+        }}
+      >
+        <span className="text-lg leading-none">💡</span>
         <p className="font-medium mt-0.5">
-          <strong>Tip:</strong> Just tap Present or Absent. The system saves your changes
-          automatically in the background!
+          <strong>Tip:</strong> Tap Present or Absent to override. Changes are saved automatically.
+          Rows marked <span className="inline-flex items-center gap-1 font-bold"><MonitorSmartphone size={12} /> Self Check-In</span> were recorded by the student via kiosk.
         </p>
       </div>
 
-      {/* Error */}
+      {/* ── Error ─────────────────────────────────────────────────────────── */}
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm border border-red-100">
+        <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm border border-red-200 font-medium">
           {error}
         </div>
       )}
 
-      {/* Student list */}
+      {/* ── Student list ──────────────────────────────────────────────────── */}
       {loading ? (
-        <div className="py-12 flex flex-col items-center justify-center space-y-4 text-gray-500 bg-white rounded-2xl shadow-sm border border-gray-200">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          <p className="text-lg font-medium">Loading data, please wait...</p>
+        <div
+          className="py-12 flex flex-col items-center justify-center space-y-4 bg-white rounded-2xl shadow-sm border border-gray-200"
+        >
+          <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#0F3E33' }} />
+          <p className="text-base font-medium text-gray-500">Loading data, please wait...</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {students.length > 0 ? (
             students.map((student) => {
-              const currentStatus = attendances[student.id]?.status;
+              const currentStatus  = attendances[student.id]?.status;
+              const wasKioskCheckin = kioskCheckedIn.current.has(student.id);
 
               return (
                 <div
                   key={student.id}
-                  className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"
+                  className="bg-white rounded-2xl shadow-sm overflow-hidden border transition-shadow hover:shadow-md"
+                  style={{ borderColor: 'rgba(15,62,51,0.10)' }}
                 >
-                  <div className="p-4 sm:p-5 border-b border-gray-50">
-                    <h3 className="text-lg font-bold text-gray-900 truncate">{student.name}</h3>
-                    <p className="text-sm text-gray-500 truncate mt-1">{student.course}</p>
+                  {/* Student info row */}
+                  <div className="px-5 py-4 flex items-center justify-between border-b border-gray-50">
+                    <div className="min-w-0">
+                      <h3 className="text-base font-bold text-gray-900 truncate">{student.name}</h3>
+                      <p className="text-xs text-gray-400 truncate mt-0.5">{student.course}</p>
+                    </div>
+
+                    {/* Kiosk / Override badge */}
+                    {currentStatus && (
+                      <div className="ml-3 shrink-0">
+                        {wasKioskCheckin ? (
+                          <span
+                            className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"
+                            style={{ background: 'rgba(15,62,51,0.08)', color: '#0F3E33' }}
+                          >
+                            <MonitorSmartphone size={11} />
+                            Self Check-In
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">
+                            <PenLine size={11} />
+                            Teacher Override
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex p-3 gap-3 bg-gray-50">
+
+                  {/* Toggle buttons */}
+                  <div className="flex gap-3 p-3">
                     {/* Present */}
                     <button
                       onClick={() => handleAttendance(student.id, 'Present')}
-                      className={`flex-1 flex items-center justify-center py-4 px-2 rounded-xl text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 active:scale-95 ${
+                      className={`flex-1 flex items-center justify-center py-3.5 px-2 rounded-xl text-sm font-extrabold transition-all focus:outline-none active:scale-95 ${
                         currentStatus === 'Present'
-                          ? 'bg-green-500 text-white shadow-md border border-green-600'
-                          : 'bg-white text-green-700 border border-green-200 hover:bg-green-50'
-                      } ${currentStatus === 'Absent' ? 'opacity-40 grayscale-[50%]' : ''}`}
+                          ? 'text-white shadow-md'
+                          : 'border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-white'
+                      } ${currentStatus === 'Absent' ? 'opacity-40' : ''}`}
+                      style={
+                        currentStatus === 'Present'
+                          ? { background: '#0F3E33' }
+                          : {}
+                      }
                     >
-                      <CheckCircle size={24} className="mr-2" />
+                      <CheckCircle size={18} className="mr-2" />
                       Present
                     </button>
 
                     {/* Absent */}
                     <button
                       onClick={() => handleAttendance(student.id, 'Absent')}
-                      className={`flex-1 flex items-center justify-center py-4 px-2 rounded-xl text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 active:scale-95 ${
+                      className={`flex-1 flex items-center justify-center py-3.5 px-2 rounded-xl text-sm font-extrabold transition-all focus:outline-none active:scale-95 ${
                         currentStatus === 'Absent'
-                          ? 'bg-red-500 text-white shadow-md border border-red-600'
-                          : 'bg-white text-red-700 border border-red-200 hover:bg-red-50'
-                      } ${currentStatus === 'Present' ? 'opacity-40 grayscale-[50%]' : ''}`}
+                          ? 'bg-red-600 text-white shadow-md'
+                          : 'border-2 border-red-200 text-red-600 hover:bg-red-50 bg-white'
+                      } ${currentStatus === 'Present' ? 'opacity-40' : ''}`}
                     >
-                      <XCircle size={24} className="mr-2" />
+                      <XCircle size={18} className="mr-2" />
                       Absent
                     </button>
                   </div>
@@ -241,9 +387,9 @@ export default function AttendancePage() {
               );
             })
           ) : (
-            <div className="py-12 flex flex-col items-center justify-center space-y-3 bg-white rounded-2xl shadow-sm border border-gray-200 text-gray-500">
-              <UserCheck className="h-10 w-10 text-gray-400" />
-              <p className="text-lg font-medium text-gray-600">
+            <div className="py-14 flex flex-col items-center justify-center space-y-3 bg-white rounded-2xl shadow-sm border border-gray-200">
+              <UserCheck className="h-10 w-10 text-gray-300" />
+              <p className="text-base font-medium text-gray-400">
                 No students found for this teacher yet.
               </p>
             </div>
@@ -252,4 +398,13 @@ export default function AttendancePage() {
       )}
     </div>
   );
+}
+
+
+/** Minimal student shape needed for the attendance grid */
+interface AttendanceStudent {
+  id: string;
+  name: string;
+  course: string;
+  assigned_teacher: string;
 }
