@@ -1,26 +1,88 @@
 @import "tailwindcss";
 
+/* ── Brand Design Tokens ─────────────────────────────────────────── */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --emerald:       #0F3E33;
+  --emerald-dark:  #0a2a22;
+  --emerald-light: #1a5c4a;
+  --gold:          #D4AF37;
+  --gold-dark:     #b8962e;
+  --gold-light:    #e8c84a;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background:   var(--background);
+  --color-foreground:   var(--foreground);
+  --font-sans:          var(--font-geist-sans);
+  --font-mono:          var(--font-geist-mono);
+  --font-amiri:         var(--font-amiri);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ── Base ────────────────────────────────────────────────────────── */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:  var(--background);
+  color:       var(--foreground);
+  font-family: var(--font-geist-sans, Arial, Helvetica, sans-serif);
 }
+
+/* ── Arabic / Amiri Font ─────────────────────────────────────────── */
+.font-amiri {
+  font-family: var(--font-amiri, 'Amiri', 'Traditional Arabic', serif);
+}
+
+/* ── Keyframe Animations ─────────────────────────────────────────── */
+@keyframes float {
+  0%,  100% { transform: translateY(0px)   rotate(0deg);   opacity: 0.75; }
+  33%        { transform: translateY(-18px) rotate(1.5deg); opacity: 1;    }
+  66%        { transform: translateY(-8px)  rotate(-1deg);  opacity: 0.85; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes pulse-glow {
+  0%,  100% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.25); }
+  50%        { box-shadow: 0 0 45px rgba(212, 175, 55, 0.55); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Animation Utility Classes ───────────────────────────────────── */
+.animate-float      { animation: float       6s  ease-in-out infinite; }
+.animate-float-2    { animation: float       8s  ease-in-out infinite 1.5s; }
+.animate-float-3    { animation: float       10s ease-in-out infinite 3s; }
+.animate-fade-in-up { animation: fade-in-up  0.8s ease-out both; }
+.animate-pulse-glow { animation: pulse-glow  2.5s ease-in-out infinite; }
+.animate-spin-slow  { animation: spin-slow   20s  linear    infinite; }
+
+/* Gold shimmer gradient text */
+.text-gold-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--gold-dark) 0%,
+    var(--gold-light) 40%,
+    var(--gold) 60%,
+    var(--gold-dark) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
