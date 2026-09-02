@@ -46,8 +46,6 @@ const COURSES: string[] = [
   'Nazra tul Quran',
   'Hifz ul Quran',
   'Tajweed Course',
-  'Islamic Studies',
-  'Arabic Language',
   'Tafseer ul Quran',
 ];
 
@@ -683,37 +681,7 @@ export default function ApplyPage() {
                       </div>
                     </div>
 
-                    {/* —— Assigned Teacher (Internal) —— */}
-                    <div>
-                      <FieldLabel htmlFor="assigned_teacher">
-                        Assigned Teacher{' '}
-                        <span className="text-xs font-normal text-gray-400">
-                          (For Internal Routing)
-                        </span>
-                      </FieldLabel>
-                      <div className="relative">
-                        <div
-                          className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10"
-                          style={{ color: '#9ca3af' }}
-                        >
-                          <Users size={17} />
-                        </div>
-                        <select
-                          id="assigned_teacher"
-                          name="assigned_teacher"
-                          required
-                          value={formData.assigned_teacher}
-                          onChange={handleChange}
-                          className={SELECT}
-                        >
-                          <option value="" disabled>Select a teacher…</option>
-                          {TEACHERS.map((t) => (
-                            <option key={t} value={t}>{t}</option>
-                          ))}
-                        </select>
-                        <ChevronDown />
-                      </div>
-                    </div>
+
 
                     {/* —— Submit Button —— */}
                     <div className="pt-3">

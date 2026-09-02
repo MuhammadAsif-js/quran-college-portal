@@ -449,7 +449,7 @@ export default function ZoomCheckIn() {
 
       {/* Footer */}
       <p className="relative z-10 mt-6 text-white/30 text-xs font-medium text-center">
-        Quran College Portal · Attendance Kiosk
+        Quran Institute Portal · Attendance Kiosk
       </p>
     </div>
   );

@@ -20,14 +20,14 @@ const amiri = Amiri({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Quran College | Authentic Islamic Education',
-    template: '%s | Quran College',
+    default: 'Quran Institute | Authentic Islamic Education',
+    template: '%s | Quran Institute',
   },
   description:
     'Join thousands of students worldwide in authentic Quran education. Expert teachers, certified courses in Tajweed, Hifz, and Islamic Studies.',
   keywords: ['Quran', 'Tajweed', 'Hifz', 'Islamic education', 'online Quran classes'],
   openGraph: {
-    title: 'Quran College | Authentic Islamic Education',
+    title: 'Quran Institute | Authentic Islamic Education',
     description:
       'Certified online Quran education for students across the globe. Tajweed, Hifz, Tafseer, and more.',
     type: 'website',

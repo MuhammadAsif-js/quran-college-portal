@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────
-// Centralised TypeScript types for the Quran College Portal
+// Centralised TypeScript types for the Quran Institute Portal
 // ──────────────────────────────────────────────────────────────────
 
 /** Full student record as stored in Supabase `students` table */

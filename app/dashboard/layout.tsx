@@ -128,7 +128,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <BookOpen className="text-white" size={14} />
                 </div>
                 <span className="text-xl font-bold" style={{ color: '#0F3E33' }}>
-                  Quran College
+                  Quran Institute
                 </span>
               </div>
 

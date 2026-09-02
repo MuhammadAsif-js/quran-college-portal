@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Quran College | Begin Your Sacred Journey',
+  title: 'Quran Institute | Begin Your Sacred Journey',
   description:
     'Authentic Quranic education rooted in Ilm and Hidayah — from Nazra to Advanced Hifz & Tajweed, for students across the globe. Apply for 2026 intake.',
 };
@@ -229,7 +229,7 @@ export default function Home() {
             </div>
             <div>
               <span className="text-white font-bold text-lg tracking-tight leading-none">
-                Quran College
+                Quran Institute
               </span>
               <span
                 className="block text-xs font-medium -mt-0.5"
@@ -671,7 +671,7 @@ export default function Home() {
               >
                 <BookOpen className="text-white" size={16} />
               </div>
-              <span className="text-white font-bold text-lg">Quran College</span>
+              <span className="text-white font-bold text-lg">Quran Institute</span>
             </div>
 
             {/* Links */}
@@ -694,7 +694,7 @@ export default function Home() {
           </div>
 
           <div className="mt-8 pt-8 border-t border-white/10 text-center text-sm">
-            © {new Date().getFullYear()} Quran College. All rights reserved.
+            © {new Date().getFullYear()} Quran Institute. All rights reserved.
             &nbsp;May Allah bless this endeavour. 🌙
           </div>
         </div>
