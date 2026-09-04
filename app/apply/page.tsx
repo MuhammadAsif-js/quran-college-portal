@@ -46,8 +46,6 @@ const COURSES: string[] = [
   'Nazra tul Quran',
   'Hifz ul Quran',
   'Tajweed Course',
-  'Islamic Studies',
-  'Arabic Language',
   'Tafseer ul Quran',
   'Moman ki Namaz',
   'Tajliya-Te-Nabowat Books'

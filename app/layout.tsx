@@ -45,7 +45,22 @@ export default function RootLayout({
       dir="ltr"
       className={`${geistSans.variable} ${geistMono.variable} ${amiri.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>{children}</body>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        {/* Your main app content */}
+        <div className="flex-grow">
+          {children}
+        </div>
+
+        {/* The Zero Flint Footer */}
+        <footer className="w-full py-4 text-center text-sm font-medium bg-[#0F3E33] border-t border-white/10 mt-auto">
+          <p className="text-white/70">
+            ⚡ Powered by{' '}
+            <a href="/developer" className="text-[#D4AF37] font-bold hover:text-white transition-all">
+              Zero Flint
+            </a>
+          </p>
+        </footer>
+      </body>
     </html>
   );
 }
