@@ -36,7 +36,6 @@ export interface AdmissionFormData {
   country: string;
   islamic_qualification: string;
   education: string;
-  assigned_teacher: string;
 }
 
 /** Single row in the `attendance` Supabase table */

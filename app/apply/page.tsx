@@ -39,7 +39,6 @@ const INITIAL_FORM: AdmissionFormData = {
   country: '',
   islamic_qualification: '',
   education: '',
-  assigned_teacher: '',
 };
 
 const COURSES: string[] = [
@@ -69,14 +68,7 @@ const EDUCATION_LEVELS: string[] = [
   'Other',
 ];
 
-const TEACHERS: string[] = [
-  'Not Assigned Yet',
-  'Ustadh Abdullah',
-  'Ustadha Fatima',
-  'Ustadh Ibrahim',
-  'Ustadha Khadija',
-  'Ustadh Yusuf',
-];
+
 
 const WA_MESSAGE =
   'Assalamu Alaikum! ðŸŒŸ Admissions are now open at our Quran Academy. Begin your journey of Ilm & Hidayah here: ';
