@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Student, AttendanceRecord } from '@/types';
 import {
-  Filter,
   Eye,
   X,
   User,
@@ -15,7 +14,6 @@ import {
   CreditCard,
   BookOpen,
   GraduationCap,
-  Globe,
   Loader2,
   CheckCircle,
 } from 'lucide-react';
@@ -37,23 +35,7 @@ function PaymentPill({ status }: { status: string | null }) {
   );
 }
 
-const TEACHER_COLORS: Record<string, { bg: string; text: string }> = {
-  'Teacher 1': { bg: 'rgba(15,62,51,0.10)',    text: '#0F3E33' },
-  'Teacher 2': { bg: 'rgba(212,175,55,0.18)',  text: '#92620A' },
-  'Teacher 3': { bg: 'rgba(99,102,241,0.12)',  text: '#4338CA' },
-};
 
-function TeacherPill({ teacher }: { teacher: string | null }) {
-  const colors = teacher ? (TEACHER_COLORS[teacher] ?? { bg: '#f3f4f6', text: '#6b7280' }) : { bg: '#f3f4f6', text: '#6b7280' };
-  return (
-    <span
-      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold"
-      style={{ background: colors.bg, color: colors.text }}
-    >
-      {teacher || 'Unassigned'}
-    </span>
-  );
-}
 
 export default function DashboardPage() {
   const [students, setStudents]   = useState<Student[]>([]);
@@ -61,7 +43,6 @@ export default function DashboardPage() {
   const [error, setError]         = useState<string | null>(null);
 
   // Filters
-  const [teacherFilter, setTeacherFilter]   = useState<string>('All');
   const [paymentFilter, setPaymentFilter]   = useState<string>('All');
 
   // Modal
@@ -112,14 +93,12 @@ export default function DashboardPage() {
   };
 
   const filteredStudents = students.filter((student) => {
-    const passesTeacher =
-      teacherFilter === 'All' || student.assigned_teacher === teacherFilter;
     const passesPayment =
       paymentFilter === 'All' ||
       (paymentFilter === 'Pending' &&
         (!student.payment_status || student.payment_status === 'Pending')) ||
       (paymentFilter === 'Confirmed' && student.payment_status === 'Confirmed');
-    return passesTeacher && passesPayment;
+    return passesPayment;
   });
 
   const verifyPayment = async (studentId: string): Promise<void> => {
@@ -165,7 +144,7 @@ export default function DashboardPage() {
             )}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            All student applications · name, course, teacher &amp; payment status.
+            All student applications · name, course &amp; payment status.
           </p>
         </div>
 
@@ -182,22 +161,6 @@ export default function DashboardPage() {
             <option value="Confirmed">Confirmed</option>
           </select>
 
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-              <Filter size={15} />
-            </div>
-            <select
-              value={teacherFilter}
-              onChange={(e) => setTeacherFilter(e.target.value)}
-              className="pl-9 pr-8 py-2 text-sm border-2 border-gray-200 rounded-xl bg-white focus:outline-none transition-colors font-medium"
-              style={{ borderColor: teacherFilter !== 'All' ? '#D4AF37' : undefined }}
-            >
-              <option value="All">All Teachers</option>
-              <option value="Teacher 1">Teacher 1</option>
-              <option value="Teacher 2">Teacher 2</option>
-              <option value="Teacher 3">Teacher 3</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -218,7 +181,7 @@ export default function DashboardPage() {
             <table className="min-w-full divide-y divide-gray-100">
               <thead>
                 <tr style={{ background: 'rgba(15,62,51,0.05)' }}>
-                  {['Name', 'Course', 'WhatsApp No', 'Location', 'Assigned Teacher', 'Payment', ''].map(
+                  {['Name', 'Course', 'WhatsApp No', 'Location', 'Payment', ''].map(
                     (col) => (
                       <th
                         key={col}
@@ -258,9 +221,7 @@ export default function DashboardPage() {
                         <div className="text-sm font-medium text-gray-800">{student.city}</div>
                         <div className="text-xs text-gray-400">{student.country}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <TeacherPill teacher={student.assigned_teacher} />
-                      </td>
+
                       <td className="px-6 py-4 whitespace-nowrap">
                         <PaymentPill status={student.payment_status} />
                       </td>
@@ -293,7 +254,7 @@ export default function DashboardPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-14 text-center">
+                    <td colSpan={6} className="px-6 py-14 text-center">
                       <div className="flex flex-col items-center justify-center space-y-3">
                         <Users className="h-10 w-10 text-gray-300" />
                         <p className="text-base font-medium text-gray-400">
@@ -417,18 +378,10 @@ export default function DashboardPage() {
                         {selectedStudent.course || 'N/A'}
                       </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-gray-400">Assigned Teacher</p>
-                        <div className="mt-1">
-                          <TeacherPill teacher={selectedStudent.assigned_teacher} />
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400">Payment Status</p>
-                        <div className="mt-1">
-                          <PaymentPill status={selectedStudent.payment_status} />
-                        </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Payment Status</p>
+                      <div className="mt-1">
+                        <PaymentPill status={selectedStudent.payment_status} />
                       </div>
                     </div>
                   </div>
